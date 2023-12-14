@@ -1,9 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { showQuickPick, showInputBox } from './basicInput';
-import { multiStepInput } from './multiStepInput';
-import { quickOpen } from './quickOpen';
+
+import { createFilePicker } from './filePicker';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -13,18 +12,10 @@ export function activate(context: vscode.ExtensionContext) {
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "3dslink-helper" is now active!');
 
-	let test = vscode.commands.registerCommand('3dslink-helper.send3dsx', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user 
-		vscode.window.showInformationMessage('Sent to 3ds!');
-	});
-
-	context.subscriptions.push(vscode.commands.registerCommand('3dslink-helper.quickInput', async () => {
+	context.subscriptions.push(vscode.commands.registerCommand('3dslink-helper.send3dsx', async () => {
+		const filepicker = createFilePicker("**/*.*");
 		const options: { [key: string]: (context: vscode.ExtensionContext) => Promise<void> } = {
-			showQuickPick,
-			showInputBox,
-			multiStepInput,
-			quickOpen,
+			"load 3dsx": filepicker
 		};
 		const quickPick = vscode.window.createQuickPick();
 		quickPick.items = Object.keys(options).map(label => ({ label }));
@@ -37,8 +28,6 @@ export function activate(context: vscode.ExtensionContext) {
 		quickPick.onDidHide(() => quickPick.dispose());
 		quickPick.show();
 	}));
-
-	context.subscriptions.push(test);
 }
 
 // This method is called when your extension is deactivated

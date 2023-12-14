@@ -15,14 +15,16 @@
   "contributes": {
     "commands": [
       {
-        "command": "3dslink-helper.helloWorld",
-        "title": "Hello World"
-      },
-      {
-				"command": "3dslink-helper.quickInput",
-				"title": "Quick Input Samples"
-			}
+        "command": "3dslink-helper.send3dsx",
+        "title": "Send 3dsx"
+      }
     ]
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "This extension runs compiled .3dsx code on your Nintendo 3ds. It needs to be able to run a command line program to do this."
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

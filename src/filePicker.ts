@@ -5,23 +5,9 @@
 
 import * as path from 'path';
 import * as cp from 'child_process';
-import { Uri, window, Disposable } from 'vscode';
+import { Uri, window, Disposable, GlobPattern } from 'vscode';
 import { QuickPickItem } from 'vscode';
 import { workspace } from 'vscode';
-
-/**
- * A file opener using window.createQuickPick().
- * 
- * It shows how the list of items can be dynamically updated based on
- * the user's input in the filter field.
- */
-export async function quickOpen() {
-	const uri = await pickFile();
-	if (uri) {
-		const document = await workspace.openTextDocument(uri);
-		await window.showTextDocument(document);
-	}
-}
 
 class FileItem implements QuickPickItem {
 
@@ -34,21 +20,30 @@ class FileItem implements QuickPickItem {
 	}
 }
 
-export async function pickFile(): Promise<Uri | undefined> {
+export function createFilePicker(pattern: GlobPattern) {
+	return async () => {
+		await pickFile(pattern);
+	};
+}
+
+export async function pickFile(pattern: GlobPattern): Promise<Uri | undefined> {
 	const disposables: Disposable[] = [];
 
 	try {
-		return await new Promise<Uri | undefined>((resolve, reject) => {
+		return await new Promise<Uri | undefined>(async (resolve, reject) => {
 			const input = window.createQuickPick<FileItem>();
 			input.placeholder = 'Type to search for files';
+			input.busy = true;
+			const items = (await workspace.findFiles(pattern)).map(uri => new FileItem(uri));
+
+			if (items.length === 0) {
+				return;
+			}
+
+			input.items = items;
+			input.busy = false;
 
 			disposables.push(
-				input.onDidChangeValue(async value => {
-					input.busy = true;
-					const items = (await workspace.findFiles("**/*.3dsx")).map(uri => new FileItem(uri));
-					input.items = items ? items : [];
-					input.busy = false;
-				}),
 				input.onDidChangeSelection(items => {
 					const item = items[0];
 					resolve(item.uri);
