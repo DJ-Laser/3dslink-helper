@@ -3,6 +3,7 @@
   "displayName": "3dslink Helper",
   "description": "Tool for easily running .3dsx files through 3dslink and the homebrew launcher",
   "version": "0.0.1",
+  "publisher": "DJ_Laser",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -16,7 +17,11 @@
       {
         "command": "3dslink-helper.helloWorld",
         "title": "Hello World"
-      }
+      },
+      {
+				"command": "3dslink-helper.quickInput",
+				"title": "Quick Input Samples"
+			}
     ]
   },
   "scripts": {
