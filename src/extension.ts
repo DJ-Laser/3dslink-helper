@@ -18,7 +18,8 @@ class ThreeDSLinkHelper {
 	}
 
 	async send3dsx(uri: Uri, ipAddr?: string | undefined): Promise<boolean> {
-		const ipArg = ipAddr ? "-a " + ipAddr : "";
+		ipAddr = ipAddr? ipAddr :  await this.inputIp(ipAddr);
+		const ipArg = "-a " + ipAddr;
 		let processes: cp.ChildProcess[] = [];
 
 		try {
@@ -27,8 +28,6 @@ class ThreeDSLinkHelper {
 					const output = stdout + stderr;
 
 					if (false || output.includes("No response from 3DS!")) {
-						console.log("could not auto find 3ds ip");
-
 						const newIp = await this.inputIp(ipAddr);
 						if (newIp) {
 							resolve(await this.send3dsx(uri, newIp));
@@ -41,6 +40,7 @@ class ThreeDSLinkHelper {
 						resolve(true);
 					}
 				});
+				
 				processes.push(process);
 			});
 		} finally {
