@@ -1,34 +1,85 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+import { ExtensionContext, Uri, commands, window } from "vscode";
+import * as cp from "child_process";
 
-import { createFilePicker } from './filePicker';
+import { pickFile } from "./filePicker";
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
-
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "3dslink-helper" is now active!');
-
-	context.subscriptions.push(vscode.commands.registerCommand('3dslink-helper.send3dsx', async () => {
-		const filepicker = createFilePicker("**/*.*");
-		const options: { [key: string]: (context: vscode.ExtensionContext) => Promise<void> } = {
-			"load 3dsx": filepicker
-		};
-		const quickPick = vscode.window.createQuickPick();
-		quickPick.items = Object.keys(options).map(label => ({ label }));
-		quickPick.onDidChangeSelection(selection => {
-			if (selection[0]) {
-				options[selection[0].label](context)
-					.catch(console.error);
-			}
-		});
-		quickPick.onDidHide(() => quickPick.dispose());
-		quickPick.show();
-	}));
+export function activate(context: ExtensionContext) {
+	new ThreeDSLinkHelper(context);
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() { }
+class ThreeDSLinkHelper {
+	constructor(private context: ExtensionContext) {
+		this.registerCommand("3dslink-helper.send3dsxFromPalette", async () => {
+			const uri = await this.pick3dsx();
+			if (!uri) { return; }
+
+			await this.send3dsx(uri);
+		});
+	}
+
+	async send3dsx(uri: Uri, ipAddr?: string | undefined): Promise<boolean> {
+		const ipArg = ipAddr ? "-a " + ipAddr : "";
+		let processes: cp.ChildProcess[] = [];
+
+		try {
+			return await new Promise((resolve, reject) => {
+				const process = cp.exec(`3dslink ${uri.path} ${ipArg}`, async (error, stdout, stderr) => {
+					const output = stdout + stderr;
+
+					if (false || output.includes("No response from 3DS!")) {
+						console.log("could not auto find 3ds ip");
+
+						const newIp = await this.inputIp(ipAddr);
+						if (newIp) {
+							resolve(await this.send3dsx(uri, newIp));
+						} else {
+							reject(false);
+						}
+					} else if (output.includes(`Connection to ${ipAddr} failed`)) {
+						resolve(await this.show3dsxRetryMessage(uri, ipAddr));
+					} else {
+						resolve(true);
+					}
+				});
+				processes.push(process);
+			});
+		} finally {
+			for (const process of processes) {
+				process.kill();
+			}
+		}
+	}
+
+	async show3dsxRetryMessage(uri: Uri, ip?: string | undefined) {
+		const result = await window.showInformationMessage(
+			"Failed to connect to 3ds. It it connected to the network and in .3dsx loading mode?",
+			"Retry", "Cancel"
+		);
+		if (result === "Retry") {
+			const newIp = await this.inputIp(ip);
+			return await this.send3dsx(uri, newIp);
+		} else {
+			return false;
+		}
+	}
+
+	async pick3dsx(): Promise<Uri | undefined> {
+		return await pickFile("**/*.3dsx", "Select a .3dsx file to run.");
+	}
+
+	async inputIp(ip: string = ""): Promise<string | undefined> {
+		return await window.showInputBox({
+			value: ip,
+			valueSelection: [0, ip.length],
+			placeHolder: "Input the ip address displayed on your 3DS",
+			validateInput: text => {
+				// Regex to match an ipv4 address
+				return text.match(/^(?:(?:25[0-5]|(?:2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/) ? null : "Invalid ipv4 address.";
+			}
+		});
+	}
+
+	registerCommand(name: string, command: (...args: any[]) => any) {
+		this.context.subscriptions.push(commands.registerCommand(name, command));
+	}
+}

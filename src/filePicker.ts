@@ -3,11 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as path from 'path';
-import * as cp from 'child_process';
-import { Uri, window, Disposable, GlobPattern } from 'vscode';
-import { QuickPickItem } from 'vscode';
-import { workspace } from 'vscode';
+import * as path from "path";
+import { Uri, window, Disposable, GlobPattern, QuickPickItem, workspace } from "vscode";
 
 class FileItem implements QuickPickItem {
 
@@ -20,28 +17,15 @@ class FileItem implements QuickPickItem {
 	}
 }
 
-export function createFilePicker(pattern: GlobPattern) {
-	return async () => {
-		await pickFile(pattern);
-	};
-}
-
-export async function pickFile(pattern: GlobPattern): Promise<Uri | undefined> {
+export async function pickFile(pattern: GlobPattern,
+	placeholder: string="Type to search for files", boxText: string=""): Promise<Uri | undefined> {
 	const disposables: Disposable[] = [];
 
 	try {
 		return await new Promise<Uri | undefined>(async (resolve, reject) => {
 			const input = window.createQuickPick<FileItem>();
-			input.placeholder = 'Type to search for files';
-			input.busy = true;
-			const items = (await workspace.findFiles(pattern)).map(uri => new FileItem(uri));
-
-			if (items.length === 0) {
-				return;
-			}
-
-			input.items = items;
-			input.busy = false;
+			input.placeholder = placeholder;
+			input.value = boxText;
 
 			disposables.push(
 				input.onDidChangeSelection(items => {
@@ -54,8 +38,19 @@ export async function pickFile(pattern: GlobPattern): Promise<Uri | undefined> {
 					input.dispose();
 				})
 			);
-
+			
+			input.busy = true;
 			input.show();
+
+			const items = (await workspace.findFiles(pattern)).map(uri => new FileItem(uri));
+
+			if (items.length === 0) {
+				return;
+			}
+
+			input.items = items;
+			input.busy = false;
+
 		});
 	} finally {
 		disposables.forEach(d => d.dispose());
