@@ -21,10 +21,29 @@
   "contributes": {
     "commands": [
       {
+        "command": "3dslink-helper.send3dsxFromMenu",
+        "title": "3DSLink: Send to 3DS"
+      },
+      {
         "command": "3dslink-helper.send3dsxFromPalette",
-        "title": "Run 3dsx"
+        "title": "3DSLink: Send app to 3DS"
       }
-    ]
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "when": "resourceExtname == .3dsx",
+          "command": "3dslink-helper.send3dsxFromMenu",
+          "group": "navigation@100"
+        }
+      ],
+      "commandPalette": [
+        {
+          "when": "false",
+          "command": "3dslink-helper.send3dsxFromMenu"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
