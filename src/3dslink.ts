@@ -1,4 +1,4 @@
-import { CancellationError, CancellationToken, CancellationTokenSource, Progress, ProgressLocation, Uri, window } from "vscode";
+import { CancellationToken, Progress, Uri } from "vscode";
 import { ChildProcess, ChildProcessWithoutNullStreams, spawn } from "child_process";
 import path from "path";
 
@@ -9,11 +9,14 @@ export enum OutcomeType {
     COMMAND_NOT_FOUND,
     FILE_NOT_ACCESSIBLE,
     PROCESS_KILLED,
+    CANECELED_BY_USER,
     UNKNOWN_ERROR,
 }
 
 export class TransferOutcome {
+    // The reason the function closed
     public status: OutcomeType;
+    // 
     public isError: boolean;
     public exitCode?: number;
     public errorMessage?: string;
@@ -22,10 +25,11 @@ export class TransferOutcome {
     private constructor(status: OutcomeType, options: {
         exitCode?: number,
         errorMessage?: string,
-        signal?: string
+        signal?: string,
+        isError?: boolean
     }) {
         this.status = status;
-        this.isError = status !== OutcomeType.SUCCESS;
+        this.isError = options.isError ?? true;
         this.exitCode = options.exitCode;
         this.errorMessage = options.errorMessage;
         this.signal = options.signal;
@@ -33,7 +37,8 @@ export class TransferOutcome {
 
     public static success() {
         return new TransferOutcome(OutcomeType.SUCCESS, {
-            exitCode: 0
+            exitCode: 0,
+            isError: false
         });
     }
 
@@ -47,6 +52,12 @@ export class TransferOutcome {
     public static processKilled(signal: string) {
         return new TransferOutcome(OutcomeType.PROCESS_KILLED, {
             signal: signal
+        });
+    }
+
+    public static canceled() {
+        return new TransferOutcome(OutcomeType.CANECELED_BY_USER, {
+            isError: false
         });
     }
 
@@ -123,10 +134,19 @@ async function genericSend3dsx(uri: Uri, ipAddress?: string, feedback?: Progress
         return await new Promise<TransferOutcome>((resolve) => {
             // spawn the 3dslink command
             const process = spawn("3dslink", ipAddress ? [uri.path, "-a", ipAddress] : [uri.path]);
-            if (feedback) { attachProgressUpdaters(process, fileName, feedback); }
             processes.push(process);
 
             let outcome: TransferOutcome | undefined;
+
+            if (feedback) {
+                attachProgressUpdaters(process, fileName, feedback);
+                
+                // kill on cancel
+                feedback.token.onCancellationRequested(() => {
+                    outcome = TransferOutcome.canceled();
+                    process.kill();
+                });
+            }
 
             process.on("close", (code, signal) => {
                 const exitCode = code ?? NaN;
