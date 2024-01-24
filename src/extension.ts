@@ -9,6 +9,8 @@ export class ThreeDSLinkHelper {
 	private static context: ExtensionContext;
 
 	static init(context: ExtensionContext) {
+		this.context = context;
+
 		this.registerCommand("3dslink-helper.send3dsxFromPalette", async () => {
 			const uri = await pick3dsx();
 			if (uri) {
