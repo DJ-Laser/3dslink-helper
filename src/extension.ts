@@ -1,5 +1,5 @@
 import { ExtensionContext, Uri, commands } from "vscode";
-import { send3dsxwithNotifications, pick3dsx } from "./3dslinkUX";
+import { send3dsxwithNotifications, pick3dsx } from "./3dslink/3dslinkUX";
 
 export function activate(context: ExtensionContext) {
 	ThreeDSLinkHelper.init(context);

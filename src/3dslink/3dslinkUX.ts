@@ -1,9 +1,19 @@
 import { Uri, window, ProgressLocation } from "vscode";
 import path from "path";
 
-import { pickFile } from "./filePicker";
-import { ThreeDSLinkHelper } from "./extension";
-import { TransferOutcome, OutcomeType, send3dsxWithProgress, ProgressFeedback } from "./3dslink";
+import { pickFile } from "../filePicker";
+import { ThreeDSLinkHelper } from "../extension";
+import { TransferOutcome, OutcomeType, ProgressFeedback, ThreeDSLinkSender } from "./I3dslink";
+import { ThreeDSLinkFromCLI } from "./3dslinkFromCLI"; 
+
+let ThreeDSLinkProvider: ThreeDSLinkSender = new ThreeDSLinkFromCLI;
+
+/**
+ * 
+ */
+export function set3dslinkProvder(provider: ThreeDSLinkSender) {
+    ThreeDSLinkProvider = provider;
+}
 
 /**
  * open a quick pick menu containing all the 3dsx files in the workspace and get the users selection
@@ -70,7 +80,7 @@ export async function send3dsxwithNotifications(uri: Uri, ipAddress?: string): P
             progress: progress,
             token: token
         };
-        const outcome = await send3dsxWithProgress(uri, feedback, ipAddress);
+        const outcome = await ThreeDSLinkProvider.send3dsxWithProgress(uri, feedback, ipAddress);
 
         return handle3dsxNotification(outcome, feedback, uri, ipAddress);
     });
@@ -84,7 +94,7 @@ async function handle3dsxNotification(outcome: TransferOutcome, feedback: Progre
         }
         // could not automatically find 3ds
         case OutcomeType.NO_3DS_RESPONSE: {
-            const newOutcome = await send3dsxWithProgress(uri, feedback, await smartInputIp());
+            const newOutcome = await ThreeDSLinkProvider.send3dsxWithProgress(uri, feedback, await smartInputIp());
             return handle3dsxNotification(newOutcome, feedback, uri, ipAddress);
         }
         case OutcomeType.CONNECTION_TO_IP_FAILED: {

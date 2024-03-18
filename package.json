@@ -16,8 +16,14 @@
     "untrustedWorkspaces": {
       "supported": false,
       "description": "This extension runs compiled .3dsx code on your Nintendo 3ds. It needs to be able to run a command line program to do this."
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "This extension sends your compiled code to your 3ds via the command line."
     }
   },
+  "extensionDependencies": ["ms-vscode.makefile-tools"],
+  "extensionKind": ["workspace"],
   "contributes": {
     "commands": [
       {
